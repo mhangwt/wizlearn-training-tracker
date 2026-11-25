@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; connect-src https://tqrxyxjrbvaagsmnqshq.supabase.co; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Client Training Tracker</title>
+<style>
+  :root {
+    --color-bg: #f5f6f4; --color-panel: #ffffff; --color-fg: #1c2330; --color-fg-muted: #5a6475; --color-border-line: #dcdfe5;
+    --color-ok: #2a8a4f; --color-warn: #a87500; --color-bad: #c93a3a;
+    --stage-0: #6f7c93; --stage-1: #2f7fc9; --stage-2: #8a5bd0; --stage-3: #2f9a86;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
+    --fs-caption: 0.8125rem; --fs-body: 0.9375rem; --fs-heading: 1.0625rem; --fs-title: 1.875rem;
+    --gap-xs: 4px; --gap-sm: 8px; --gap-md: 16px; --gap-lg: 24px;
+    --pad-sm: 8px; --pad-md: 14px; --pad-lg: 20px; --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-bg: #12161d; --color-panel: #1a2029; --color-fg: #e8ebf0; --color-fg-muted: #9aa5b5; --color-border-line: #2b3340;
+      --color-ok: #4cc07a; --color-warn: #e0b13a; --color-bad: #f0716f;
+      --stage-0: #9aa7bd; --stage-1: #5aa3e6; --stage-2: #b08cf0; --stage-3: #4fc0aa;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --color-bg: #12161d; --color-panel: #1a2029; --color-fg: #e8ebf0; --color-fg-muted: #9aa5b5; --color-border-line: #2b3340;
+    --color-ok: #4cc07a; --color-warn: #e0b13a; --color-bad: #f0716f;
+    --stage-0: #9aa7bd; --stage-1: #5aa3e6; --stage-2: #b08cf0; --stage-3: #4fc0aa;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); font-size: var(--fs-body); line-height: 1.45;
+    padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  [hidden] { display: none !important; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--stage-1); outline-offset: 2px; }
+
+  /* ---------- Login ---------- */
+  .login { min-height: 70vh; display: grid; place-items: center; }
+  .login-card { width: min(420px, 100%); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--radius); padding: var(--pad-lg); display: flex; flex-direction: column; gap: var(--gap-md); }
+  .login-card h1 { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 1.75rem; line-height: 1.15; }
+  .login-card p { margin: 0; color: var(--color-fg-muted); font-size: var(--fs-caption); }
+  .login-error { color: var(--color-bad) !important; min-height: 1.2em; }
+  .login-form { display: flex; flex-direction: column; gap: var(--gap-md); }
+
+  /* ---------- Dashboard ---------- */
+  .tt { container-type: inline-size; display: flex; flex-direction: column; gap: var(--gap-lg); max-width: 1400px; margin: 0 auto; }
+  .tt-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--gap-md); }
+  .tt-title { font-family: var(--font-serif); font-weight: 400; font-size: var(--fs-title); line-height: 1.15; margin: 0; }
+  .tt-lead { margin: var(--gap-xs) 0 0; max-width: 72ch; color: var(--color-fg-muted); line-height: 1.5; }
+  .tt-lead b, .tt-sub b { color: var(--color-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tt-user { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: var(--fs-caption); color: var(--color-fg-muted); text-align: right; }
+  .tt-user-actions { display: flex; gap: 6px; }
+
+  .tt-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gap-md); }
+  .tt-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-caption); color: var(--color-fg-muted); flex: 1 1 220px; max-width: 360px; min-width: 0; }
+  .tt-select, .tt-input { width: 100%; min-height: 40px; padding: 0 10px; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--radius); color: var(--color-fg); font-size: var(--fs-body); }
+  .tt-input[aria-invalid="true"] { border-color: var(--color-bad); }
+  .tt-textarea { padding: 10px; line-height: 1.45; resize: vertical; min-height: 0; }
+  .tt-btn { min-height: 40px; padding: 0 16px; background: transparent; border: 1px solid var(--color-border-line); border-radius: var(--radius); cursor: pointer; }
+  .tt-btn:hover:not(:disabled) { background: var(--color-panel); }
+  .tt-btn--primary { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+  .tt-btn--primary:hover:not(:disabled) { background: var(--color-fg); opacity: 0.88; }
+  .tt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .tt-btn--small { min-height: 32px; padding: 0 12px; font-size: var(--fs-caption); }
+
+  .tt-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: var(--fs-caption); color: var(--color-fg-muted); }
+  .tt-key-label { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tt-key-item { display: inline-flex; align-items: center; gap: 6px; color: var(--color-fg); }
+  .tt-swatch { flex: none; width: 10px; height: 10px; border-radius: 3px; border: 1px solid; }
+  .tt-swatch--ok { border-color: var(--color-ok); background: color-mix(in srgb, var(--color-ok) 35%, transparent); }
+  .tt-swatch--warn { border-color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 35%, transparent); }
+  .tt-swatch--bad { border-color: var(--color-bad); background: color-mix(in srgb, var(--color-bad) 35%, transparent); }
+  .tt-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--stage, var(--color-fg-muted)); }
+  .tt-stagewrap { display: inline-flex; align-items: center; gap: 6px; }
+
+  .tt-status { margin: 0; font-size: var(--fs-caption); }
+  .tt-status:empty { display: none; }
+  .tt-status.is-error { color: var(--color-bad); }
+
+  .tt-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--gap-md); }
+  .tt-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--radius); padding: var(--pad-lg); display: flex; flex-direction: column; gap: var(--gap-xs); min-width: 0; }
+  .tt-card-h { margin: 0; font-size: var(--fs-caption); font-weight: 600; color: var(--color-fg-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .tt-big { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 2.75rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .tt-big .tt-bad { color: var(--color-bad); }
+  .tt-big .tt-warn { color: var(--color-warn); }
+  .tt-sub { margin: 0; font-size: var(--fs-caption); color: var(--color-fg-muted); line-height: 1.4; }
+  .tt-names { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .tt-panel { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--radius); padding: var(--pad-lg); min-width: 0; display: flex; flex-direction: column; gap: var(--gap-sm); }
+  .tt-panel-h { margin: 0; display: flex; align-items: center; gap: var(--gap-sm); flex-wrap: wrap; font-size: var(--fs-heading); font-weight: 600; }
+  .tt-note { margin: 0; font-size: var(--fs-caption); color: var(--color-fg-muted); line-height: 1.45; }
+  .tt-count { font-size: var(--fs-caption); font-weight: 600; font-variant-numeric: tabular-nums; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 1px 9px; color: var(--color-fg-muted); }
+
+  .tt-chart { position: relative; min-height: 210px; min-width: 0; }
+  .tt-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt-chart text { fill: var(--color-fg-muted); font-size: 12.5px; font-family: var(--font-sans); }
+  .tt-chart .tt-val { fill: var(--color-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tt-row { cursor: pointer; outline: none; }
+  .tt-row .tt-hit { fill: transparent; stroke: none; }
+  .tt-row:hover .tt-hit { fill: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+  .tt-row:focus-visible .tt-hit { stroke: var(--color-fg); stroke-width: 1.5px; }
+  .tt-row.is-dim { opacity: 0.45; }
+  .tt-row.is-sel .tt-bar { stroke: var(--color-fg); stroke-width: 1.5px; }
+  .tt-tip { position: absolute; z-index: 2; pointer-events: none; max-width: 260px; padding: 8px 10px; border-radius: var(--radius); background: var(--color-panel); border: 1px solid var(--color-border-line); box-shadow: 0 4px 16px rgba(0,0,0,0.18); color: var(--color-fg-muted); font-size: var(--fs-caption); line-height: 1.4; }
+  .tt-tip strong { display: block; color: var(--color-fg); font-weight: 600; margin-bottom: 2px; }
+  .tt-tip span { display: block; }
+
+  .tt-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap-sm); }
+  @container (min-width: 640px) { .tt-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @container (min-width: 1000px) { .tt-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .tt-item { display: flex; flex-direction: column; gap: 3px; padding: var(--pad-md); border: 1px solid var(--color-border-line); border-radius: var(--radius); background: var(--color-bg); min-width: 0; }
+  .tt-item--bad { border-color: color-mix(in srgb, var(--color-bad) 50%, var(--color-border-line)); }
+  .tt-item--warn { border-color: color-mix(in srgb, var(--color-warn) 55%, var(--color-border-line)); }
+  .tt-item-top { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-sm); flex-wrap: wrap; }
+  .tt-id { font-weight: 600; font-size: var(--fs-caption); letter-spacing: 0.03em; }
+  .tt-item-name { margin: 0; line-height: 1.35; overflow-wrap: anywhere; }
+  .tt-item-meta, .tt-item-why { margin: 0; font-size: var(--fs-caption); color: var(--color-fg-muted); line-height: 1.4; }
+  .tt-item-why b { color: var(--color-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tt-item-reasons { display: flex; flex-direction: column; gap: 3px; }
+  .tt-item-actions, .tt-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tt-empty { margin: 0; color: var(--color-fg-muted); }
+
+  .tt-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); font-size: var(--fs-caption); line-height: 1.5; white-space: nowrap; color: var(--color-fg); font-variant-numeric: tabular-nums; }
+  .tt-chip--ok { border-color: color-mix(in srgb, var(--color-ok) 60%, transparent); background: color-mix(in srgb, var(--color-ok) 14%, transparent); }
+  .tt-chip--warn { border-color: color-mix(in srgb, var(--color-warn) 65%, transparent); background: color-mix(in srgb, var(--color-warn) 14%, transparent); }
+  .tt-chip--bad { border-color: color-mix(in srgb, var(--color-bad) 60%, transparent); background: color-mix(in srgb, var(--color-bad) 12%, transparent); }
+  .tt-chip-btn { font-size: var(--fs-caption); background: transparent; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 1px 10px; cursor: pointer; }
+
+  .tt-edit { display: flex; flex-direction: column; gap: var(--gap-sm); padding: var(--pad-md); border: 1px solid var(--color-border-line); border-radius: var(--radius); background: var(--color-bg); }
+  .tt-edit-h { margin: 0; font-size: var(--fs-heading); font-weight: 600; overflow-wrap: anywhere; }
+  .tt-edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--gap-sm); }
+  .tt-field2 { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-caption); color: var(--color-fg-muted); min-width: 0; }
+  .tt-field2--wide { grid-column: 1 / -1; }
+  .tt-edit-error { margin: 0; font-size: var(--fs-caption); color: var(--color-bad); line-height: 1.4; }
+  .tt-edit-error:empty { display: none; }
+  .tt-edit-actions { display: flex; flex-wrap: wrap; gap: var(--gap-sm); }
+  .tt-copybox { display: flex; flex-direction: column; gap: var(--gap-sm); padding: var(--pad-md); border: 1px solid var(--color-border-line); border-radius: var(--radius); background: var(--color-panel); }
+
+  .tt-scroll { overflow-x: auto; }
+  .tt-table { width: 100%; min-width: 1400px; border-collapse: collapse; font-size: var(--fs-caption); }
+  .tt-table th { text-align: left; font-weight: 600; color: var(--color-fg-muted); letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .tt-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--color-border-line); vertical-align: top; line-height: 1.4; }
+  .tt-table tbody tr:last-child td { border-bottom: 0; }
+  .tt-table .tt-num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 18px; }
+  .tt-table th.tt-num { text-align: right; padding-right: 18px; }
+  .tt-table .tt-pct::after { content: "%"; }
+  .tt-table .tt-below { color: var(--color-bad); font-weight: 600; }
+  .tt-table .tt-run { font-weight: 600; white-space: nowrap; }
+  .tt-table .tt-notecell { max-width: 220px; overflow-wrap: anywhere; color: var(--color-fg-muted); }
+  .tt-flags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tt-foot { margin: 0; font-size: var(--fs-caption); color: var(--color-fg-muted); line-height: 1.5; }
+
+  @container (max-width: 560px) {
+    .tt { gap: var(--gap-md); }
+    .tt-user { align-items: flex-start; text-align: left; }
+    .tt-field { max-width: none; flex-basis: 100%; }
+    .tt-panel { padding: var(--pad-md); }
+    .tt-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-sm); }
+    .tt-card { padding: var(--pad-md); }
+    .tt-big { font-size: 2.25rem; }
+    .tt-btn { flex: 1 1 100%; }
+    .tt-btn--small { min-height: 40px; }
+    .tt-cards .tt-card:last-child:nth-child(odd) { grid-column: span 2; }
+  }
+  @container (max-width: 760px) {
+    .tt-scroll { overflow-x: visible; }
+    .tt-table { min-width: 0; display: block; }
+    .tt-table thead { display: none; }
+    .tt-table tbody { display: flex; flex-direction: column; gap: var(--gap-sm); }
+    .tt-table tr { display: block; border: 1px solid var(--color-border-line); border-radius: var(--radius); padding: 8px 12px; background: var(--color-bg); }
+    .tt-table td, .tt-table tbody tr:last-child td { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border: 0; padding: 4px 0; text-align: right; font-size: var(--fs-body); }
+    .tt-table td::before { content: attr(data-label); flex: none; text-align: left; color: var(--color-fg-muted); font-size: var(--fs-caption); letter-spacing: 0.04em; text-transform: uppercase; }
+    .tt-table td.tt-num { padding-right: 0; }
+    .tt-table td.tt-run { font-size: var(--fs-heading); padding-bottom: 6px; }
+    .tt-table td:has(.tt-flags:empty) { display: none; }
+    .tt-table .tt-flags, .tt-table .tt-actions { justify-content: flex-end; }
+    .tt-table .tt-notecell { max-width: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .tt-btn, .tt-chip-btn { transition: background-color 120ms ease; } }
+</style>
+</head>
+<body>
+
+<!-- ============ Login ============ -->
+<main class="login" id="login-view" hidden>
+  <form class="login-card" id="login-form" novalidate>
+    <h1>Client training tracker</h1>
+    <p>Sign in with your work account to see your course runs.</p>
+    <div class="login-form">
+      <label class="tt-field2" for="login-email">Email
+        <input class="tt-input" id="login-email" type="email" autocomplete="username" inputmode="email" required>
+      </label>
+      <label class="tt-field2" for="login-password">Password
+        <input class="tt-input" id="login-password" type="password" autocomplete="current-password" required>
+      </label>
+      <p class="login-error" id="login-error" role="alert"></p>
+      <button class="tt-btn tt-btn--primary" id="login-submit" type="submit">Sign in</button>
+    </div>
+  </form>
+</main>
+
+<!-- ============ Dashboard ============ -->
+<div class="tt" id="app-view" hidden>
+  <header class="tt-top">
+    <div>
+      <h1 class="tt-title">Client training tracker</h1>
+      <p class="tt-lead" id="lead">Loading runs…</p>
+    </div>
+    <div class="tt-user">
+      <span id="user-line"></span>
+      <span class="tt-user-actions">
+        <button type="button" class="tt-btn tt-btn--small" id="refresh">Refresh</button>
+        <button type="button" class="tt-btn tt-btn--small" id="signout">Sign out</button>
+      </span>
+    </div>
+  </header>
+
+  <div class="tt-controls" id="controls">
+    <label class="tt-field" for="coord" id="coord-wrap" hidden>Coordinator
+      <select class="tt-select" id="coord"></select>
+    </label>
+    <button type="button" class="tt-btn" id="reset" hidden>Reset filters</button>
+  </div>
+
+  <div class="tt-key" id="colour-key" role="group" aria-label="Colour key">
+    <span class="tt-key-label">Stage</span>
+    <span class="tt-key-group" id="stage-key" style="display: contents"></span>
+    <span class="tt-key-label">Flags</span>
+    <span class="tt-key-item"><span class="tt-swatch tt-swatch--bad"></span>Enrolment below the minimum</span>
+    <span class="tt-key-item"><span class="tt-swatch tt-swatch--warn"></span>Certificates pending</span>
+    <span class="tt-key-label">Trainer</span>
+    <span class="tt-key-item"><span class="tt-swatch tt-swatch--ok"></span>Confirmed</span>
+    <span class="tt-key-item"><span class="tt-swatch tt-swatch--warn"></span>Pending</span>
+    <span class="tt-key-item"><span class="tt-swatch tt-swatch--bad"></span>Send reminder</span>
+  </div>
+
+  <p class="tt-status" id="action-status" role="status"></p>
+  <div class="tt-copybox" id="copy-box" hidden>
+    <label class="tt-field2" for="copy-text">Select and copy this message</label>
+    <textarea class="tt-input tt-textarea" id="copy-text" rows="5" readonly></textarea>
+    <div class="tt-edit-actions"><button type="button" class="tt-btn" id="copy-close">Done</button></div>
+  </div>
+
+  <section class="tt-panel" id="attention-panel">
+    <h2 class="tt-panel-h">Needs attention <span class="tt-count" id="att-count">0</span></h2>
+    <p class="tt-note">A session within <span class="js-window">14</span> days with enrolment below the minimum, a completed run with certificates still pending, or a pending trainer to remind. A run can appear for more than one reason.</p>
+    <ul class="tt-list" id="attention-list"></ul>
+    <p class="tt-empty" id="att-empty" hidden>Nothing needs attention for this selection.</p>
+  </section>
+
+  <section class="tt-cards" id="summary" aria-label="Summary">
+    <article class="tt-card" id="card-progress">
+      <h2 class="tt-card-h">Runs in progress</h2>
+      <p class="tt-big" id="k-in-progress">—</p>
+      <p class="tt-sub">Every run not completed, out of <b id="k-total">—</b> in total.</p>
+    </article>
+    <article class="tt-card" id="card-below-min">
+      <h2 class="tt-card-h">Below minimum class size</h2>
+      <p class="tt-big" id="k-below-min">—</p>
+      <p class="tt-sub">Runs with fewer people enrolled than the minimum.</p>
+    </article>
+    <article class="tt-card" id="card-sessions">
+      <h2 class="tt-card-h">Sessions in the next <span class="js-window">14</span> days</h2>
+      <p class="tt-big" id="k-sessions">—</p>
+      <p class="tt-sub">Next sessions from <b id="k-range">—</b>.</p>
+    </article>
+    <article class="tt-card" id="card-certs">
+      <h2 class="tt-card-h">Certificates pending</h2>
+      <p class="tt-big" id="k-certs">—</p>
+      <p class="tt-sub">Completed runs awaiting certificates: <b id="k-certs-runs">—</b>.</p>
+    </article>
+    <article class="tt-card" id="card-trainers">
+      <h2 class="tt-card-h">Trainers to chase</h2>
+      <p class="tt-big" id="k-trainers">—</p>
+      <p class="tt-sub">Pending trainers whose confirm by date is <span class="js-reminder">3</span> days away or less, or has passed.</p>
+    </article>
+    <article class="tt-card" id="card-not-reported" hidden>
+      <h2 class="tt-card-h">Not reported this week</h2>
+      <p class="tt-big" id="k-not-reported">—</p>
+      <p class="tt-sub">Coordinators who have not updated any run in the last <span class="js-report">7</span> days.</p>
+      <ul class="tt-names" id="not-reported-list"></ul>
+    </article>
+  </section>
+
+  <section class="tt-panel" id="stage-panel">
+    <h2 class="tt-panel-h">Runs by stage</h2>
+    <p class="tt-note">Select a bar to filter the table below to that stage.</p>
+    <div class="tt-chart" id="stage-chart"></div>
+  </section>
+
+  <section class="tt-panel" id="runs-panel">
+    <h2 class="tt-panel-h">All runs <span class="tt-count" id="tbl-count">0</span> <span id="stage-filter"></span></h2>
+    <p class="tt-note">Sorted by attendance rate (attended divided by enrolled), lowest first. Runs that have not started have no rate and come last.</p>
+    <p class="tt-status" id="edit-status" role="status"></p>
+    <form class="tt-edit" id="edit-form" aria-labelledby="edit-title" hidden novalidate>
+      <h3 class="tt-edit-h" id="edit-title"></h3>
+      <p class="tt-note" id="edit-info"></p>
+      <div class="tt-edit-grid">
+        <label class="tt-field2" for="f-stage">Stage
+          <select class="tt-select" id="f-stage">
+            <option value="Planning">Planning</option>
+            <option value="Enrolment open">Enrolment open</option>
+            <option value="Running">Running</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </label>
+        <label class="tt-field2" for="f-enrolled">Enrolled
+          <input class="tt-input" id="f-enrolled" type="number" inputmode="numeric" min="0" step="1">
+        </label>
+        <label class="tt-field2" for="f-attended">Attended
+          <input class="tt-input" id="f-attended" type="number" inputmode="numeric" min="0" step="1" aria-describedby="edit-error">
+        </label>
+        <label class="tt-field2" for="f-certs">Certificates pending
+          <input class="tt-input" id="f-certs" type="number" inputmode="numeric" min="0" step="1">
+        </label>
+        <label class="tt-field2" for="f-trainer" id="f-trainer-wrap" hidden>Trainer status
+          <select class="tt-select" id="f-trainer">
+            <option value="Confirmed">Confirmed</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </label>
+        <label class="tt-field2" for="f-coord" id="f-coord-wrap" hidden>Coordinator
+          <select class="tt-select" id="f-coord"></select>
+        </label>
+        <label class="tt-field2 tt-field2--wide" for="f-note">Note (one line)
+          <input class="tt-input" id="f-note" type="text" maxlength="200" autocomplete="off">
+        </label>
+      </div>
+      <p class="tt-edit-error" id="edit-error" role="alert"></p>
+      <div class="tt-edit-actions">
+        <button type="submit" class="tt-btn tt-btn--primary" id="f-save">Save changes</button>
+        <button type="button" class="tt-btn" id="f-cancel">Cancel</button>
+      </div>
+    </form>
+    <div class="tt-scroll">
+      <table class="tt-table" id="runs-table">
+        <thead>
+          <tr>
+            <th>Run</th><th>Client</th><th>Course</th><th>Coordinator</th><th>Stage</th>
+            <th class="tt-num">Enrolled</th><th class="tt-num">Minimum</th><th class="tt-num">Attendance rate</th>
+            <th>Next session</th><th>Trainer</th><th>Trainer status</th><th>Confirm by</th><th>Note</th><th>Flags</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="tt-foot">Runs are read from and saved to the training database. What you can see and change depends on your role, and the database enforces it. Sessions and confirm by dates are counted from today, and a session today is included.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Only the project URL and the publishable key belong in this file.
+  const SUPABASE_URL = 'https://tqrxyxjrbvaagsmnqshq.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_yjfv2d9e-F4lAKZu_mqT9A_MbJetQ8z';
+
+  const WINDOW_DAYS = 14;     // sessions within this many days
+  const REMINDER_DAYS = 3;    // trainer reminder when confirm by is this close, or past
+  const REPORT_DAYS = 7;      // "Not reported this week"
+  const STAGES = ['Planning', 'Enrolment open', 'Running', 'Completed'];
+  const stageColor = (s) => 'var(--stage-' + Math.max(0, STAGES.indexOf(s)) + ')';
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const svgEl = (tag, attrs) => {
+    const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.keys(attrs || {}).forEach((k) => e.setAttribute(k, attrs[k]));
+    return e;
+  };
+
+  // ---------- Dates ----------
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayStr = () => { const t = new Date(); return t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate()); };
+  const toUtc = (s) => new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)));
+  const dayDiff = (a, b) => Math.round((toUtc(a) - toUtc(b)) / 86400000);
+  const fmtDay = (s) => { const d = toUtc(s); return DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; };
+  const fmtShort = (d) => d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
+  const fmtFull = (s) => fmtDay(s) + ' ' + s.slice(0, 4);
+
+  // ---------- Supabase ----------
+  if (!window.supabase || !window.supabase.createClient) {
+    document.body.textContent = 'The Supabase library could not be loaded. Check your connection and reload.';
+    return;
+  }
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const state = {
+    profile: null,      // { user_id, email, full_name, role, coordinator_name }
+    runs: [],           // rows from public.runs (the database already limits them to this person)
+    profiles: [],       // manager only
+    audit: [],          // manager only: coordinator updates in the last 7 days
+    coordinator: '',    // manager filter
+    stage: '',          // chart filter
+    editing: null,      // run uuid being edited
+    loading: false
+  };
+  const isManager = () => !!state.profile && state.profile.role === 'manager';
+
+  // ---------- Calculations ----------
+  function enrich(runs, today) {
+    return runs.map((r) => {
+      const completed = r.stage === 'Completed';
+      const days = r.next_session && !completed ? dayDiff(r.next_session, today) : null;
+      const belowMin = r.enrolled < r.min_size;
+      const soon = days !== null && days >= 0 && days <= WINDOW_DAYS;
+      const certsOpen = completed && r.certs_pending > 0;
+      const confirmDays = r.confirm_by ? dayDiff(r.confirm_by, today) : null;
+      const red = r.trainer_status === 'Pending' && confirmDays !== null && confirmDays <= REMINDER_DAYS;
+      return Object.assign({}, r, {
+        in_progress: !completed,
+        below_min: belowMin,
+        shortfall: belowMin ? r.min_size - r.enrolled : 0,
+        attendance_rate: r.attended != null && r.enrolled > 0 ? Math.round(r.attended / r.enrolled * 1000) / 10 : null,
+        days_to_session: days,
+        session_soon: soon,
+        session_risk: soon && belowMin,
+        certs_open: certsOpen,
+        confirm_days: confirmDays,
+        trainer_red: red,
+        trainer_label: r.trainer_status === 'Confirmed' ? 'Confirmed' : (red ? 'Send reminder' : 'Pending'),
+        attention: (soon && belowMin) || certsOpen || red
+      });
+    });
+  }
+  const visibleRows = () => {
+    const all = enrich(state.runs, todayStr());
+    return isManager() && state.coordinator ? all.filter((r) => r.coordinator_name === state.coordinator) : all;
+  };
+  const rowById = (id) => visibleRows().find((r) => r.id === id) || null;
+
+  function kpis(v) {
+    const n = (f) => v.filter(f).length;
+    return {
+      total: v.length,
+      in_progress: n((r) => r.in_progress),
+      below_min: n((r) => r.below_min),
+      sessions_soon: n((r) => r.session_soon),
+      certs_pending: v.reduce((s, r) => s + (r.certs_pending || 0), 0),
+      certs_runs: n((r) => r.certs_open),
+      trainers: n((r) => r.trainer_red),
+      att_sessions: n((r) => r.session_risk),
+      att_certs: n((r) => r.certs_open),
+      att_total: n((r) => r.attention)
+    };
+  }
+  function attentionRows(v) {
+    const rank = (r) => (r.session_risk ? 0 : (r.trainer_red ? 1 : 2));
+    return v.filter((r) => r.attention).sort((a, b) => rank(a) - rank(b)
+      || (rank(a) === 0 ? a.days_to_session - b.days_to_session
+        : rank(a) === 1 ? a.confirm_days - b.confirm_days
+          : b.certs_pending - a.certs_pending));
+  }
+  function notReported() {
+    const since = Date.now() - REPORT_DAYS * 86400000;
+    const reported = new Set(state.audit.filter((a) => new Date(a.changed_at).getTime() >= since).map((a) => a.changed_by));
+    return state.profiles.filter((p) => p.role === 'coordinator' && !reported.has(p.user_id))
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  }
+
+  // ---------- Messages ----------
+  let actionStatus = '';
+  let actionIsError = false;
+  const say = (text, isError) => {
+    actionStatus = text; actionIsError = !!isError;
+    const p = $('action-status');
+    p.textContent = text;
+    p.classList.toggle('is-error', !!isError);
+  };
+  const friendly = (err) => {
+    const m = (err && err.message) || '';
+    if (/completed_needs_attended/.test(m)) return 'Attended must be filled in before a run can be saved as Completed.';
+    if (/runs_note_check/.test(m)) return 'The note must be one line of 200 characters or fewer.';
+    if (err && err.code === 'PGRST116') return 'That was not saved. You may not have permission to change this run.';
+    if (err && err.code === '42501') return 'You are not allowed to make that change.';
+    if (err && err.code === '23503') return m;
+    return 'That was not saved. ' + (m || 'Please try again.');
+  };
+
+  // ---------- Rendering ----------
+  function renderAll() {
+    if (!state.profile) return;
+    const v = visibleRows();
+    const k = kpis(v);
+    const today = todayStr();
+
+    document.querySelectorAll('.js-window').forEach((e) => { e.textContent = String(WINDOW_DAYS); });
+    document.querySelectorAll('.js-reminder').forEach((e) => { e.textContent = String(REMINDER_DAYS); });
+    document.querySelectorAll('.js-report').forEach((e) => { e.textContent = String(REPORT_DAYS); });
+
+    $('user-line').textContent = state.profile.email + ' · ' + (isManager() ? 'Manager' : 'Coordinator, ' + state.profile.coordinator_name);
+    $('lead').textContent = '';
+    const lead = $('lead');
+    const b = (t) => el('b', null, String(t));
+    lead.append('As at ', b(fmtFull(today)), ', ', b(k.in_progress), ' of ', b(k.total), ' runs are in progress. Needing attention: ',
+      b(k.att_sessions), ' with a session within ', b(WINDOW_DAYS), ' days and enrolment below minimum, ',
+      b(k.att_certs), ' completed with certificates pending, and ', b(k.trainers), ' with a trainer to remind.');
+
+    $('k-in-progress').textContent = k.in_progress;
+    $('k-total').textContent = k.total;
+    const bm = $('k-below-min'); bm.textContent = k.below_min; bm.className = 'tt-big' + (k.below_min > 0 ? ' tt-bad' : '');
+    $('k-sessions').textContent = k.sessions_soon;
+    $('k-range').textContent = fmtShort(toUtc(today)) + ' to ' + fmtShort(new Date(toUtc(today).getTime() + WINDOW_DAYS * 86400000));
+    const kc = $('k-certs'); kc.textContent = k.certs_pending; kc.className = 'tt-big' + (k.certs_pending > 0 ? ' tt-warn' : '');
+    $('k-certs-runs').textContent = k.certs_runs;
+    const kt = $('k-trainers'); kt.textContent = k.trainers; kt.className = 'tt-big' + (k.trainers > 0 ? ' tt-bad' : '');
+
+    renderNotReported();
+    renderAttention(v, k);
+    renderChart(v);
+    renderTable(v);
+    renderStageFilter();
+    const reset = $('reset');
+    reset.hidden = !(state.coordinator || state.stage);
+  }
+
+  function renderNotReported() {
+    const card = $('card-not-reported');
+    card.hidden = !isManager();
+    if (!isManager()) return;
+    const list = notReported();
+    $('k-not-reported').textContent = list.length;
+    $('k-not-reported').className = 'tt-big' + (list.length > 0 ? ' tt-warn' : '');
+    const ul = $('not-reported-list');
+    ul.replaceChildren();
+    if (!list.length) { ul.append(el('li', 'tt-sub', 'Every coordinator has updated a run.')); return; }
+    list.forEach((p) => ul.append(el('li', 'tt-chip tt-chip--warn', p.full_name)));
+  }
+
+  function chip(label) { return el('span', 'tt-chip ' + (label === 'Confirmed' ? 'tt-chip--ok' : (label === 'Pending' ? 'tt-chip--warn' : 'tt-chip--bad')), label); }
+
+  function reminderText(r) {
+    return 'Hi ' + r.trainer + ', please confirm that you can deliver ' + r.course + ' for ' + r.client + '.'
+      + (r.next_session && r.stage !== 'Completed' ? ' Next session: ' + fmtDay(r.next_session) + '.' : '')
+      + ' We need your confirmation by ' + fmtDay(r.confirm_by) + (r.confirm_days < 0 ? ' (now overdue)' : '') + '. Thank you.';
+  }
+  async function copyReminder(id) {
+    const r = rowById(id);
+    if (!r || !r.confirm_by) return;
+    const text = reminderText(r);
+    try {
+      await navigator.clipboard.writeText(text);
+      $('copy-box').hidden = true;
+      say('Reminder for ' + r.run_id + ' copied. Paste it into your message to ' + r.trainer + '.');
+    } catch (e) {
+      $('copy-text').value = text;
+      $('copy-box').hidden = false;
+      $('copy-text').focus();
+      $('copy-text').select();
+      say('The reminder for ' + r.run_id + ' could not be copied automatically. Select the message below and copy it.');
+    }
+  }
+  async function markConfirmed(id, button) {
+    const r = rowById(id);
+    if (!r) return;
+    button.disabled = true;
+    const res = await sb.from('runs').update({ trainer_status: 'Confirmed' }).eq('id', id).select().single();
+    if (res.error) { button.disabled = false; say(friendly(res.error), true); return; }
+    replaceRun(res.data);
+    say(r.trainer + ' is marked as Confirmed for ' + r.run_id + '. Every figure has been recalculated.');
+    renderAll();
+  }
+  function replaceRun(row) {
+    const i = state.runs.findIndex((x) => x.id === row.id);
+    if (i >= 0) state.runs[i] = row; else state.runs.push(row);
+  }
+  function actionButton(label, aria, handler) {
+    const b = el('button', 'tt-btn tt-btn--small', label);
+    b.type = 'button';
+    b.setAttribute('aria-label', aria);
+    b.onclick = () => handler(b);
+    return b;
+  }
+  function rowActions(r, cls) {
+    const wrap = el('div', cls);
+    wrap.append(actionButton('Edit', 'Edit ' + r.run_id, () => openEditor(r.id)));
+    if (r.trainer_red) wrap.append(actionButton('Copy reminder', 'Copy reminder for ' + r.run_id, () => copyReminder(r.id)));
+    if (isManager() && r.trainer_label !== 'Confirmed') wrap.append(actionButton('Mark confirmed', 'Mark the trainer of ' + r.run_id + ' as confirmed', (b) => markConfirmed(r.id, b)));
+    return wrap;
+  }
+
+  function renderAttention(v, k) {
+    const rows = attentionRows(v);
+    $('att-count').textContent = rows.length;
+    $('att-empty').hidden = rows.length > 0;
+    const ul = $('attention-list');
+    ul.replaceChildren(...rows.map((r) => {
+      const li = el('li', 'tt-item tt-item--' + (r.session_risk || r.trainer_red ? 'bad' : 'warn'));
+      const top = el('div', 'tt-item-top');
+      top.append(el('span', 'tt-id', r.run_id));
+      const tags = el('span', 'tt-flags');
+      if (r.session_risk) {
+        const tag = el('span', 'tt-chip tt-chip--bad');
+        if (r.days_to_session === 0) tag.append('Session today');
+        else tag.append('Session in ', el('b', null, String(r.days_to_session)), r.days_to_session === 1 ? ' day' : ' days');
+        tags.append(tag);
+      }
+      if (r.trainer_red) tags.append(el('span', 'tt-chip tt-chip--bad', 'Send reminder'));
+      if (r.certs_open) tags.append(el('span', 'tt-chip tt-chip--warn', 'Certificates pending'));
+      top.append(tags);
+      const name = el('p', 'tt-item-name');
+      name.append(el('b', null, r.client), ' · ', r.course);
+      const reasons = el('div', 'tt-item-reasons');
+      if (r.session_risk) {
+        const why = el('p', 'tt-item-why');
+        why.append(el('b', null, String(r.enrolled)), ' enrolled, minimum ', el('b', null, String(r.min_size)), ': ', el('b', null, String(r.shortfall)), ' short.');
+        reasons.append(why);
+      }
+      if (r.trainer_red) {
+        const why = el('p', 'tt-item-why');
+        const d = r.confirm_days;
+        why.append(el('b', null, r.trainer || 'The trainer'), ' has not confirmed. Confirm by ', el('b', null, fmtDay(r.confirm_by)),
+          d < 0 ? ', now overdue.' : (d === 0 ? ', which is today.' : (d === 1 ? ', which is tomorrow.' : '.')));
+        reasons.append(why);
+      }
+      if (r.certs_open) {
+        const why = el('p', 'tt-item-why');
+        why.append(el('b', null, String(r.certs_pending)), r.certs_pending === 1 ? ' certificate' : ' certificates', ' to issue.');
+        reasons.append(why);
+      }
+      const meta = el('p', 'tt-item-meta');
+      const sw = el('span', 'tt-stagewrap');
+      const dot = el('span', 'tt-dot'); dot.style.setProperty('--stage', stageColor(r.stage));
+      sw.append(dot, r.stage);
+      meta.append(sw, ' · ', r.coordinator_name);
+      if (r.next_session && r.stage !== 'Completed') meta.append(' · Session ', fmtDay(r.next_session));
+      li.append(top, name, reasons, meta, rowActions(r, 'tt-item-actions'));
+      return li;
+    }));
+  }
+
+  function renderStageKey() {
+    const host = $('stage-key');
+    host.replaceChildren(...STAGES.map((s) => {
+      const item = el('span', 'tt-key-item');
+      const dot = el('span', 'tt-dot'); dot.style.setProperty('--stage', stageColor(s));
+      item.append(dot, s);
+      return item;
+    }));
+  }
+
+  function renderChart(v) {
+    const host = $('stage-chart');
+    const data = STAGES.map((s) => ({ stage: s, runs: v.filter((r) => r.stage === s).length }));
+    const w = Math.max(host.clientWidth, 260);
+    const rowH = 46;
+    const h = data.length * rowH + 8;
+    host.replaceChildren();
+    const svg = svgEl('svg', { viewBox: '0 0 ' + w + ' ' + h, role: 'group', 'aria-label': 'Runs by stage. ' + data.map((d) => d.stage + ': ' + d.runs).join(', ') });
+    host.append(svg);
+    const tip = el('div', 'tt-tip'); tip.hidden = true;
+    host.append(tip);
+
+    const selected = state.stage;
+    const gs = data.map((d, i) => {
+      const g = svgEl('g', { class: 'tt-row' + (selected === d.stage ? ' is-sel' : '') + (selected && selected !== d.stage ? ' is-dim' : ''), transform: 'translate(0,' + (4 + i * rowH) + ')', tabindex: '0', role: 'button', 'aria-pressed': String(selected === d.stage), 'aria-label': d.stage + ': ' + d.runs + (d.runs === 1 ? ' run' : ' runs') + '. Select to filter the table.' });
+      const hit = svgEl('rect', { class: 'tt-hit', x: '-6', y: '1', width: String(w + 6), height: String(rowH - 2), rx: '6' });
+      const lab = svgEl('text', { x: '0', y: String(rowH / 2), dy: '0.32em' }); lab.textContent = d.stage;
+      g.append(hit, lab);
+      svg.append(g);
+      return { g, d, lab };
+    });
+    let lw = 0;
+    gs.forEach((o) => { lw = Math.max(lw, o.lab.getComputedTextLength ? o.lab.getComputedTextLength() : 80); });
+    const left = Math.ceil(lw) + 14;
+    const right = 40;
+    const max = Math.max(1, ...data.map((d) => d.runs));
+    const scale = (n) => (n / max) * Math.max(40, w - left - right);
+    gs.forEach((o, i) => {
+      const bar = svgEl('rect', { class: 'tt-bar', x: String(left), y: '8', height: String(rowH - 16), rx: '4', width: String(scale(o.d.runs)) });
+      bar.style.fill = stageColor(o.d.stage);
+      const val = svgEl('text', { class: 'tt-val', x: String(left + scale(o.d.runs) + 8), y: String(rowH / 2), dy: '0.32em' }); val.textContent = String(o.d.runs);
+      o.g.append(bar, val);
+      const show = (px, py) => {
+        tip.replaceChildren(el('strong', null, o.d.stage + ': ' + o.d.runs + (o.d.runs === 1 ? ' run' : ' runs')));
+        v.filter((r) => r.stage === o.d.stage).forEach((r) => tip.append(el('span', null, r.run_id + '  ' + r.client)));
+        tip.hidden = false;
+        tip.style.left = Math.max(0, Math.min(px + 12, w - tip.offsetWidth)) + 'px';
+        tip.style.top = Math.max(0, Math.min(py + 12, h - tip.offsetHeight)) + 'px';
+      };
+      const toggle = () => { state.stage = state.stage === o.d.stage ? '' : o.d.stage; renderAll(); };
+      o.g.addEventListener('click', toggle);
+      o.g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
+      const move = (ev) => { const r = host.getBoundingClientRect(); show(ev.clientX - r.left, ev.clientY - r.top); };
+      o.g.addEventListener('mouseenter', move);
+      o.g.addEventListener('mousemove', move);
+      o.g.addEventListener('mouseleave', () => { tip.hidden = true; });
+      o.g.addEventListener('focus', () => show(left + 20, 4 + i * rowH));
+      o.g.addEventListener('blur', () => { tip.hidden = true; });
+    });
+  }
+
+  function renderStageFilter() {
+    const host = $('stage-filter');
+    host.replaceChildren();
+    if (!state.stage) return;
+    const b = el('button', 'tt-chip-btn tt-stagewrap');
+    const dot = el('span', 'tt-dot'); dot.style.setProperty('--stage', stageColor(state.stage));
+    b.append(dot, 'Stage: ' + state.stage + '  ×');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'Clear the ' + state.stage + ' stage filter');
+    b.onclick = () => { state.stage = ''; renderAll(); };
+    host.append(b);
+  }
+
+  const LABELS = ['Run', 'Client', 'Course', 'Coordinator', 'Stage', 'Enrolled', 'Minimum', 'Attendance rate', 'Next session', 'Trainer', 'Trainer status', 'Confirm by', 'Note', 'Flags', 'Actions'];
+  function renderTable(v) {
+    const byRate = (a, b) => (a.attendance_rate === null) - (b.attendance_rate === null)
+      || (a.attendance_rate - b.attendance_rate) || a.run_id.localeCompare(b.run_id);
+    const rows = v.filter((r) => !state.stage || r.stage === state.stage).sort(byRate);
+    $('tbl-count').textContent = rows.length + ' of ' + v.length;
+    const tb = $('tbl-body');
+    if (!rows.length) {
+      const tr = el('tr'); const td = el('td', null, 'No runs match this selection.'); td.colSpan = LABELS.length; tr.append(td);
+      tb.replaceChildren(tr); return;
+    }
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = el('tr');
+      const cell = (text, cls) => el('td', cls || null, text);
+      const stageTd = el('td');
+      const sw = el('span', 'tt-stagewrap');
+      const dot = el('span', 'tt-dot'); dot.style.setProperty('--stage', stageColor(r.stage));
+      sw.append(dot, r.stage); stageTd.append(sw);
+      const statusTd = el('td'); statusTd.append(chip(r.trainer_label));
+      const flagsTd = el('td'); const flags = el('div', 'tt-flags');
+      if (r.below_min) flags.append(el('span', 'tt-chip tt-chip--bad', 'Below minimum'));
+      if (r.session_soon) flags.append(el('span', 'tt-chip', r.days_to_session === 0 ? 'Session today' : 'Session in ' + r.days_to_session + (r.days_to_session === 1 ? ' day' : ' days')));
+      if (r.certs_open) flags.append(el('span', 'tt-chip tt-chip--warn', r.certs_pending + (r.certs_pending === 1 ? ' certificate pending' : ' certificates pending')));
+      flagsTd.append(flags);
+      const actionsTd = el('td'); actionsTd.append(rowActions(r, 'tt-actions'));
+      tr.append(
+        cell(r.run_id, 'tt-run'), cell(r.client), cell(r.course), cell(r.coordinator_name), stageTd,
+        cell(String(r.enrolled), 'tt-num' + (r.below_min ? ' tt-below' : '')),
+        cell(String(r.min_size), 'tt-num'),
+        r.attendance_rate === null ? cell('—', 'tt-num') : cell(r.attendance_rate.toFixed(1), 'tt-num tt-pct'),
+        cell(r.next_session && r.stage !== 'Completed' ? fmtDay(r.next_session) : '—'),
+        cell(r.trainer || '—'), statusTd, cell(r.confirm_by ? fmtDay(r.confirm_by) : '—'),
+        cell(r.note || '—', 'tt-notecell'), flagsTd, actionsTd
+      );
+      Array.from(tr.children).forEach((td, i) => { td.dataset.label = LABELS[i]; });
+      return tr;
+    }));
+  }
+
+  // ---------- Editing ----------
+  const COMPLETED_NEEDS_ATTENDED = 'Attended must be filled in before a run can be saved as Completed.';
+  let editError = '';
+  const setEditError = (t) => { editError = t; $('edit-error').textContent = t; };
+  const readCount = (id, label) => {
+    const raw = $(id).value.trim();
+    if (raw === '') return { value: null };
+    const n = Number(raw);
+    return Number.isInteger(n) && n >= 0 ? { value: n } : { error: label + ' must be a whole number, 0 or more.' };
+  };
+  const completedNeedsAttended = () => $('f-stage').value === 'Completed' && $('f-attended').value.trim() === '';
+  function refreshForm() {
+    const blocked = completedNeedsAttended();
+    $('f-attended').setAttribute('aria-invalid', String(blocked));
+    $('f-save').disabled = blocked;
+    setEditError(blocked ? COMPLETED_NEEDS_ATTENDED : '');
+  }
+  function closeEditor(message) {
+    state.editing = null;
+    setEditError('');
+    $('edit-form').hidden = true;
+    $('edit-status').textContent = message || '';
+  }
+  function openEditor(id) {
+    const r = rowById(id);
+    if (!r) return;
+    state.editing = id;
+    $('edit-status').textContent = '';
+    $('edit-title').textContent = 'Edit ' + r.run_id + ': ' + r.client + ', ' + r.course;
+    $('edit-info').textContent = 'Minimum class size: ' + r.min_size + '. Next session: ' + (r.next_session && r.stage !== 'Completed' ? fmtDay(r.next_session) : 'none')
+      + '. Trainer confirm by: ' + (r.confirm_by ? fmtDay(r.confirm_by) : 'none') + '.'
+      + (r.updated_by ? ' Last updated ' + new Date(r.updated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + '.' : '');
+    $('f-stage').value = r.stage;
+    $('f-enrolled').value = String(r.enrolled);
+    $('f-attended').value = r.attended == null ? '' : String(r.attended);
+    $('f-certs').value = r.certs_pending == null ? '' : String(r.certs_pending);
+    $('f-note').value = r.note || '';
+    $('f-trainer-wrap').hidden = !isManager();
+    $('f-coord-wrap').hidden = !isManager();
+    if (isManager()) {
+      $('f-trainer').value = r.trainer_status;
+      const names = state.profiles.filter((p) => p.role === 'coordinator').map((p) => p.coordinator_name).sort();
+      if (names.indexOf(r.coordinator_name) < 0) names.push(r.coordinator_name);
+      $('f-coord').replaceChildren(...names.map((n) => new Option(n, n)));
+      $('f-coord').value = r.coordinator_name;
+    }
+    ['f-enrolled', 'f-certs'].forEach((x) => $(x).setAttribute('aria-invalid', 'false'));
+    $('edit-form').hidden = false;
+    refreshForm();
+    $('edit-form').scrollIntoView({ block: 'center' });
+    $('f-stage').focus();
+  }
+  async function saveEdit(ev) {
+    ev.preventDefault();
+    if (!state.editing) return;
+    const run = rowById(state.editing);
+    if (!run) return;
+    const stage = $('f-stage').value;
+    const en = readCount('f-enrolled', 'Enrolled');
+    const at = readCount('f-attended', 'Attended');
+    const ce = readCount('f-certs', 'Certificates pending');
+    const note = $('f-note').value.trim();
+    let err = en.error || at.error || ce.error || '';
+    if (!err && en.value === null) err = 'Enrolled is required.';
+    if (!err && stage === 'Completed' && at.value === null) err = COMPLETED_NEEDS_ATTENDED;
+    if (!err && (note.length > 200 || /[\r\n]/.test(note))) err = 'The note must be one line of 200 characters or fewer.';
+    $('f-enrolled').setAttribute('aria-invalid', String(Boolean(en.error) || en.value === null));
+    $('f-attended').setAttribute('aria-invalid', String(Boolean(at.error) || (stage === 'Completed' && at.value === null)));
+    $('f-certs').setAttribute('aria-invalid', String(Boolean(ce.error)));
+    if (err) { setEditError(err); return; }
+
+    const next = { stage: stage, enrolled: en.value, attended: at.value, certs_pending: ce.value, note: note === '' ? null : note };
+    if (isManager()) { next.trainer_status = $('f-trainer').value; next.coordinator_name = $('f-coord').value; }
+    const patch = {};
+    Object.keys(next).forEach((k) => { if ((run[k] == null ? null : run[k]) !== next[k]) patch[k] = next[k]; });
+    if (!Object.keys(patch).length) { closeEditor('No changes to save for ' + run.run_id + '.'); return; }
+
+    $('f-save').disabled = true;
+    const res = await sb.from('runs').update(patch).eq('id', run.id).select().single();
+    if (res.error) {
+      setEditError(friendly(res.error));
+      $('f-save').disabled = completedNeedsAttended();
+      return;
+    }
+    replaceRun(res.data);
+    closeEditor('Saved changes to ' + run.run_id + '. Every figure has been recalculated.');
+    renderAll();
+  }
+
+  // ---------- Loading ----------
+  async function loadAll() {
+    const runsRes = await sb.from('runs').select('*').order('run_id');
+    if (runsRes.error) throw runsRes.error;
+    state.runs = runsRes.data || [];
+    if (isManager()) {
+      const since = new Date(Date.now() - REPORT_DAYS * 86400000).toISOString();
+      const [pRes, aRes] = await Promise.all([
+        sb.from('profiles').select('user_id,email,full_name,role,coordinator_name'),
+        sb.from('run_audit').select('changed_by,changed_at').eq('action', 'update').gte('changed_at', since)
+      ]);
+      if (pRes.error) throw pRes.error;
+      if (aRes.error) throw aRes.error;
+      state.profiles = pRes.data || [];
+      state.audit = aRes.data || [];
+      const names = state.profiles.filter((p) => p.role === 'coordinator').map((p) => p.full_name).sort();
+      const sel = $('coord');
+      sel.replaceChildren(new Option('All coordinators', ''), ...names.map((n) => new Option(n, n)));
+      sel.value = state.coordinator;
+    }
+    $('coord-wrap').hidden = !isManager();
+  }
+
+  async function start(session) {
+    if (!session) { showLogin(); return; }
+    $('login-view').hidden = true;
+    $('app-view').hidden = false;
+    $('lead').textContent = 'Loading runs…';
+    const pRes = await sb.from('profiles').select('user_id,email,full_name,role,coordinator_name').eq('user_id', session.user.id).maybeSingle();
+    if (pRes.error || !pRes.data) {
+      $('lead').textContent = 'Your account has no role yet, so there is nothing to show. Please ask the manager to set it up.';
+      state.profile = null;
+      return;
+    }
+    state.profile = pRes.data;
+    try {
+      await loadAll();
+      say('');
+      renderAll();
+    } catch (e) {
+      $('lead').textContent = 'The runs could not be loaded. ' + ((e && e.message) || '');
+    }
+  }
+
+  function showLogin() {
+    state.profile = null; state.runs = []; state.profiles = []; state.audit = [];
+    state.coordinator = ''; state.stage = ''; state.editing = null;
+    $('app-view').hidden = true;
+    $('edit-form').hidden = true;
+    $('copy-box').hidden = true;
+    say('');
+    $('login-password').value = '';
+    $('login-view').hidden = false;
+  }
+
+  // ---------- Events ----------
+  $('login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const email = $('login-email').value.trim();
+    const password = $('login-password').value;
+    const msg = $('login-error');
+    msg.textContent = '';
+    if (!email || !password) { msg.textContent = 'Enter your email and password.'; return; }
+    const btn = $('login-submit');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const res = await sb.auth.signInWithPassword({ email: email, password: password });
+    btn.disabled = false; btn.textContent = 'Sign in';
+    $('login-password').value = '';
+    if (res.error) {
+      msg.textContent = res.error.status === 400 || res.error.status === 401 || /invalid/i.test(res.error.message || '')
+        ? 'The email or password is incorrect.' : 'Could not sign in. Check your connection and try again.';
+      return;
+    }
+    await start(res.data.session);
+  });
+  $('signout').addEventListener('click', async () => { await sb.auth.signOut(); showLogin(); });
+  $('refresh').addEventListener('click', async () => {
+    const b = $('refresh'); b.disabled = true;
+    try { await loadAll(); say('Runs refreshed.'); renderAll(); } catch (e) { say('Could not refresh. ' + ((e && e.message) || ''), true); }
+    b.disabled = false;
+  });
+  $('coord').addEventListener('change', () => { state.coordinator = $('coord').value; renderAll(); });
+  $('reset').addEventListener('click', () => { state.coordinator = ''; state.stage = ''; $('coord').value = ''; renderAll(); });
+  $('edit-form').addEventListener('submit', saveEdit);
+  $('f-stage').addEventListener('change', refreshForm);
+  $('f-attended').addEventListener('input', refreshForm);
+  $('f-cancel').addEventListener('click', () => closeEditor(''));
+  $('copy-close').addEventListener('click', () => { $('copy-box').hidden = true; });
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (state.profile) renderChart(visibleRows()); }, 120);
+  });
+
+  sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') showLogin(); });
+
+  renderStageKey();
+  sb.auth.getSession().then((r) => start(r.data && r.data.session)).catch(showLogin);
+})();
+</script>
+</body>
+</html>
